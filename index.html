@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Starfinder RPG - Firebase Edition + Combat Arena</title>
+    
+    <!-- Firebase SDK with fallback checking -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <style>
+        :root {
+            --agree: #27ae60; --disagree: #e74c3c; --sad: #3498db; --panic: #f39c12;
+            --chat: #9b59b6; --dice: #e67e22; --skill: #3498db;
+            --ship: #9b59b6; --downtime: #27ae60; --combat: #e74c3c;
+            --bg: #0a0e14; --panel: #141920; --accent: #00d4ff;
+            --success: #27ae60; --danger: #e74c3c;
+            --fight-punch: #e74c3c; --fight-kick: #f39c12; --fight-block: #3498db;
+            --fight-dodge: #27ae60; --fight-grapple: #9b59b6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background: var(--bg); color: white; min-height: 100vh; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+
+        /* View Controls */
+        .view-controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 14, 20, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--accent);
+            padding: 10px;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .view-btn {
+            padding: 8px 12px;
+            border: 2px solid #34495e;
+            background: transparent;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85em;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .view-btn:active { transform: scale(0.95); }
+        .view-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+
+        /* Main Container */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            padding-top: 60px;
+            transition: all 0.3s ease;
+        }
+        .panel {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+            transition: all 0.3s ease;
+            min-width: 0;
+        }
+        .panel.hidden-panel { display: none; }
+
+        .panel-header {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: space-between;
+        }
+        .twik-header { color: var(--agree); border-color: var(--agree); }
+        .gm-header { color: var(--danger); border-color: var(--danger); }
+        .collapse-btn {
+            background: transparent;
+            border: 1px solid currentColor;
+            color: inherit;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7em;
+        }
+
+        .panel-divider {
+            width: 4px;
+            background: linear-gradient(to bottom, transparent, var(--accent), transparent);
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        .panel-divider.hidden-divider { width: 0; opacity: 0; }
+
+        /* Connection Hub */
+        .connection-hub {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #2c3e50;
+        }
+        .connection-hub.connected { border-color: var(--success); }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        .status-disconnected { background: rgba(231, 76, 60, 0.2); color: var(--danger); }
+        .status-connecting { background: rgba(243, 156, 18, 0.2); color: var(--panic); }
+        .status-connected { background: rgba(39, 174, 96, 0.2); color: var(--success); }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95em;
+            -webkit-tap-highlight-color: transparent;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--accent); color: var(--bg); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: #34495e; color: white; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+        .btn-group .btn { width: auto; flex: 1; min-width: 120px; margin-bottom: 0; }
+
+        .room-code-container {
+            background: #000;
+            border: 2px dashed var(--accent);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+        .room-code { font-family: 'Courier New', monospace; font-size: 1.2em; color: var(--accent); }
+
+        input[type="text"], input[type="number"] {
+            background: #0f1419;
+            border: 2px solid #34495e;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px; /* Prevents zoom on iOS */
+            width: 100%;
+            margin-bottom: 10px;
+            -webkit-appearance: none;
+        }
+
+        .card {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+        }
+        .card-header { font-weight: bold; margin-bottom: 10px; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+
+        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .status-btn {
+            padding: 15px 5px;
+            border-radius: 10px;
+            border: 3px solid;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .status-btn.agree { border-color: var(--agree); }
+        .status-btn.disagree { border-color: var(--disagree); }
+        .status-btn.sad { border-color: var(--sad); }
+        .status-btn.panic { border-color: var(--panic); animation: panic-pulse 2s infinite; }
+
+        .chat-container { display: flex; flex-direction: column; height: 200px; }
+        .chat-messages { 
+            flex: 1; 
+            overflow-y: auto; 
+            background: #0f1419; 
+            border-radius: 8px; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            border: 1px solid #34495e;
+            -webkit-overflow-scrolling: touch;
+        }
+        .chat-msg { padding: 8px 12px; border-radius: 8px; margin: 5px 0; max-width: 85%; word-wrap: break-word; }
+        .chat-msg.twik { background: #2980b9; margin-left: auto; text-align: right; }
+        .chat-msg.gm { background: #34495e; margin-right: auto; }
+        .chat-msg.system { background: rgba(0, 212, 255, 0.1); border: 1px solid var(--accent); text-align: center; margin: 5px auto; font-size: 0.9em; color: var(--accent); }
+        .chat-input-group { display: flex; gap: 8px; }
+
+        .skills-grid { display: grid; grid-template-columns: 1fr 50px 60px; gap: 8px; align-items: center; font-size: 0.9em; }
+        .mod-input { text-align: center; padding: 8px 4px; }
+
+        .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .action-btn {
+            padding: 12px 8px;
+            border: 3px solid;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .action-btn.ship { border-color: var(--ship); }
+        .action-btn.downtime { border-color: var(--downtime); }
+        .action-btn.combat { border-color: var(--combat); }
+
+        .gm-feed { 
+            background: #0f1419; 
+            border-radius: 10px; 
+            padding: 10px; 
+            min-height: 300px; 
+            max-height: 400px; 
+            overflow-y: auto; 
+            border: 1px solid #34495e;
+            -webkit-overflow-scrolling: touch;
+        }
+        .feed-card { background: #1e2530; border-left: 5px solid; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+        .feed-card.fight { border-color: #ff0066; background: linear-gradient(90deg, rgba(255,0,102,0.1), transparent); }
+        .feed-type { font-size: 0.75em; text-transform: uppercase; color: var(--accent); font-weight: bold; margin-bottom: 5px; }
+        .feed-content { font-size: 1em; }
+        .feed-meta { font-size: 0.8em; color: #7f8c8d; margin-top: 5px; }
+
+        .firebase-config { background: rgba(255, 193, 7, 0.1); border: 2px solid #ffc107; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .firebase-config h3 { color: #ffc107; margin-bottom: 10px; font-size: 1.1em; }
+        
+        .error-box { background: rgba(231, 76, 60, 0.2); border: 2px solid var(--danger); border-radius: 8px; padding: 15px; margin: 10px 0; color: #ff6b6b; }
+        .success-box { background: rgba(39, 174, 96, 0.2); border: 2px solid var(--success); border-radius: 8px; padding: 15px; margin: 10px 0; color: #2ecc71; }
+
+        .hidden { display: none !important; }
+
+        /* iOS Safari fixes */
+        @supports (-webkit-touch-callout: none) {
+            .btn, .status-btn, .action-btn, .move-btn { 
+                cursor: default; 
+            }
+        }
+
+        /* Combat Arena Mobile Optimized */
+        .combat-arena {
+            background: linear-gradient(135deg, #1a0f1f, #0f1419);
+            border: 3px solid #ff0066;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .fighter-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            gap: 10px;
+        }
+
+        .fighter { flex: 1; text-align: center; }
+        .fighter-name { font-size: 1.1em; font-weight: bold; margin-bottom: 5px; }
+        .fighter.twik .fighter-name { color: var(--agree); }
+        .fighter.gm .fighter-name { color: var(--danger); }
+
+        .hp-container {
+            background: #000;
+            border: 2px solid #34495e;
+            border-radius: 10px;
+            height: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hp-bar { height: 100%; transition: all 0.5s ease; }
+        .hp-bar.twik { background: linear-gradient(90deg, #27ae60, #2ecc71); }
+        .hp-bar.gm { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+        .hp-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 0.8em; text-shadow: 0 0 4px rgba(0,0,0,0.8); }
+
+        .vs-badge { font-size: 1.5em; font-weight: bold; color: #ff0066; }
+
+        .move-selection { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 15px; }
+        .move-btn {
+            padding: 10px 2px;
+            border: 2px solid;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.7em;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .move-btn:active:not(:disabled) { transform: scale(0.95); }
+        .move-btn:disabled { opacity: 0.4; }
+        .move-btn.selected { animation: pulse-selected 1s infinite; box-shadow: 0 0 10px currentColor; }
+
+        @keyframes pulse-selected {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .move-btn.punch { border-color: var(--fight-punch); color: var(--fight-punch); }
+        .move-btn.kick { border-color: var(--fight-kick); color: var(--fight-kick); }
+        .move-btn.block { border-color: var(--fight-block); color: var(--fight-block); }
+        .move-btn.dodge { border-color: var(--fight-dodge); color: var(--fight-dodge); }
+        .move-btn.grapple { border-color: var(--fight-grapple); color: var(--fight-grapple); }
+
+        .combat-log { background: rgba(0,0,0,0.5); border-radius: 8px; padding: 10px; margin-top: 10px; text-align: center; font-size: 0.9em; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+        
+        .combat-controls { margin-top: 10px; }
+        
+        @media (max-width: 400px) {
+            .move-selection { grid-template-columns: repeat(3, 1fr); }
+            .move-btn:nth-child(4), .move-btn:nth-child(5) { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- View Mode Controls -->
+<div class="view-controls">
+    <button class="view-btn active" onclick="setViewMode('split')" id="btn-split">
+        <span>↔️</span> Split
+    </button>
+    <button class="view-btn" onclick="setViewMode('twik')" id="btn-twik">
+        <span>🐱</span> Twik
+    </button>
+    <button class="view-btn" onclick="setViewMode('gm')" id="btn-gm">
+        <span>🎲</span> GM
+    </button>
+</div>
+
+<div class="app-container view-split" id="appContainer">
+    <!-- TWIK'S PANEL -->
+    <div class="panel expanded" id="twikPanel">
+        <div class="panel-header twik-header">
+            <div>🐱 Twik</div>
+            <button class="collapse-btn" onclick="setViewMode('gm')">Hide →</button>
+        </div>
+
+        <div class="connection-hub" id="twikConnectionHub">
+            <div class="status-indicator status-disconnected" id="twikStatus">● Offline</div>
+
+            <!-- Firebase Check -->
+            <div id="firebaseCheck" class="error-box" style="display: none;">
+                <strong>⚠️ Firebase Not Loaded</strong><br>
+                Check internet connection or try refreshing. <br>
+                <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 10px;">Retry</button>
+            </div>
+
+            <!-- Firebase Configuration -->
+            <div class="firebase-config" id="twikFirebaseConfig">
+                <h3>🔥 Setup (iPhone: Use Safari)</h3>
+                <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">
+                    1. Go to <a href="https://console.firebase.google.com" target="_blank" style="color: #ffc107;">console.firebase.google.com</a><br>
+                    2. Create project → Add app → Web<br>
+                    3. Copy config below:
+                </p>
+                <input type="text" id="twikApiKey" placeholder="API Key (AIzaSy...)">
+                <input type="text" id="twikDatabaseUrl" placeholder="Database URL">
+                <button class="btn btn-primary" onclick="initTwikFirebase()">Connect</button>
+            </div>
+
+            <div id="twikSetup" class="hidden">
+                <p style="margin-bottom: 15px; color: #7f8c8d;">
+                    Create room for GM, or join GM's room.
+                </p>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="twikHost()">📡 HOST</button>
+                    <button class="btn btn-secondary" onclick="twikShowJoin()">🔗 JOIN</button>
+                </div>
+            </div>
+
+            <div id="twikHostArea" class="hidden">
+                <div class="room-code-container" onclick="copyRoomCode()">
+                    <div style="font-size: 0.8em; color: #7f8c8d; margin-bottom: 5px;">Room Code (tap to copy):</div>
+                    <div class="room-code" id="twikRoomCode">...</div>
+                </div>
+                <button class="btn btn-danger" onclick="twikDisconnect()">Cancel</button>
+            </div>
+
+            <div id="twikJoinArea" class="hidden">
+                <input type="text" id="twikJoinInput" placeholder="Enter room code">
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="twikJoin()">Connect</button>
+                    <button class="btn btn-secondary" onclick="twikBackToSetup()">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="twikMainInterface" class="hidden">
+            <!-- Combat Arena -->
+            <div class="combat-arena">
+                <div class="fighter-display">
+                    <div class="fighter twik">
+                        <div class="fighter-name">🐱 Twik</div>
+                        <div class="hp-container">
+                            <div class="hp-bar twik" id="twikHpBar" style="width: 100%;"></div>
+                            <div class="hp-text" id="twikHpText">100/100</div>
+                        </div>
+                    </div>
+                    <div class="vs-badge">VS</div>
+                    <div class="fighter gm">
+                        <div class="fighter-name">🎲 GM</div>
+                        <div class="hp-container">
+                            <div class="hp-bar gm" id="twikGmHpBar" style="width: 100%;"></div>
+                            <div class="hp-text" id="twikGmHpText">100/100</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="combat-log" id="twikCombatLog">Select move!</div>
+                
+                <div class="move-selection">
+                    <button class="move-btn punch" onclick="selectMove('punch')" id="twik-punch">
+                        <span style="font-size: 1.3em;">👊</span>
+                        <span>PUNCH</span>
+                    </button>
+                    <button class="move-btn kick" onclick="selectMove('kick')" id="twik-kick">
+                        <span style="font-size: 1.3em;">🦶</span>
+                        <span>KICK</span>
+                    </button>
+                    <button class="move-btn block" onclick="selectMove('block')" id="twik-block">
+                        <span style="font-size: 1.3em;">🛡️</span>
+                        <span>BLOCK</span>
+                    </button>
+                    <button class="move-btn dodge" onclick="selectMove('dodge')" id="twik-dodge">
+                        <span style="font-size: 1.3em;">💨</span>
+                        <span>DODGE</span>
+                    </button>
+                    <button class="move-btn grapple" onclick="selectMove('grapple')" id="twik-grapple">
+                        <span style="font-size: 1.3em;">🤼</span>
+                        <span>GRAPPLE</span>
+                    </button>
+                </div>
+
+                <div class="combat-controls">
+                    <button class="btn btn-secondary" onclick="resetCombat()" style="font-size: 0.9em;">Reset Fight</button>
+                </div>
+            </div>
+
+            <!-- Status Card -->
+            <div class="card" style="border-color: var(--agree);">
+                <div class="card-header" style="color: var(--agree);">😺 Status</div>
+                <div class="status-grid">
+                    <button class="status-btn agree" onclick="sendStatus('agree', 'Twik agrees')">
+                        <span>👍</span><span>Agree</span>
+                    </button>
+                    <button class="status-btn disagree" onclick="sendStatus('disagree', 'Twik disagrees')">
+                        <span>👎</span><span>Disagree</span>
+                    </button>
+                    <button class="status-btn sad" onclick="sendStatus('sad', 'Twik is sad')">
+                        <span>😿</span><span>Sad</span>
+                    </button>
+                    <button class="status-btn panic" onclick="sendStatus('panic', 'Twik panics!')">
+                        <span>😰</span><span>Panic</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat -->
+            <div class="card" style="border-color: var(--chat);">
+                <div class="card-header" style="color: var(--chat);">💬 Chat</div>
+                <div class="chat-container">
+                    <div class="chat-messages" id="twikChatBox">
+                        <div class="chat-msg system">Connected!</div>
+                    </div>
+                    <div class="chat-input-group">
+                        <input type="text" id="twikChatInput" placeholder="Type...">
+                        <button class="btn btn-primary" onclick="sendChat()" style="width: auto; padding: 12px 20px;">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skills & Dice -->
+            <div class="card" style="border-color: var(--dice);">
+                <div class="card-header" style="color: var(--dice);">🎲 Rolls</div>
+                <input type="text" id="diceInput" placeholder="3D6F+2D8E+5" style="margin-bottom: 8px;">
+                <button class="btn btn-primary" onclick="rollComplexDice()">Roll Damage</button>
+                
+                <div style="margin-top: 15px; border-top: 1px solid #34495e; padding-top: 15px;">
+                    <div class="skills-grid" id="skillsGrid"></div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card" style="border-color: var(--combat);">
+                <div class="card-header" style="color: var(--combat);">⚔️ Actions</div>
+                <div class="action-grid">
+                    <button class="action-btn combat" onclick="sendAction('combat', 'Attack', 'Strike')">⚔️ Attack</button>
+                    <button class="action-btn ship" onclick="sendAction('ship', 'Pilot', 'Fly')">🚀 Pilot</button>
+                    <button class="action-btn downtime" onclick="sendAction('downtime', 'Craft', 'Build')">🔨 Craft</button>
+                    <button class="action-btn combat" onclick="sendAction('combat', 'Spell', 'Cast')">✨ Spell</button>
+                </div>
+            </div>
+
+            <button class="btn btn-danger" onclick="twikDisconnect()">Disconnect</button>
+        </div>
+    </div>
+
+    <div class="panel-divider" id="panelDivider"></div>
+
+    <!-- GM'S PANEL -->
+    <div class="panel expanded" id="gmPanel">
+        <div class="panel-header gm-header">
+            <button class="collapse-btn" onclick="setViewMode('twik')">← Hide</button>
+            <div>🎲 GM</div>
+        </div>
+
+        <div class="connection-hub" id="gmConnectionHub">
+            <div class="status-indicator status-disconnected" id="gmStatus">● Offline</div>
+
+            <div id="gmFirebaseCheck" class="error-box" style="display: none;">
+                <strong>⚠️ Firebase Not Loaded</strong><br>
+                <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 10px;">Retry</button>
+            </div>
+
+            <div class="firebase-config" id="gmFirebaseConfig">
+                <h3>🔥 Setup</h3>
+                <input type="text" id="gmApiKey" placeholder="API Key">
+                <input type="text" id="gmDatabaseUrl" placeholder="Database URL">
+                <button class="btn btn-primary" onclick="initGmFirebase()">Connect</button>
+            </div>
+
+            <div id="gmSetup" class="hidden">
+                <p style="margin-bottom: 15px; color: #7f8c8d;">
+                    Create room for Twik, or join Twik's room.
+                </p>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="gmHost()">🎮 HOST</button>
+                    <button class="btn btn-secondary" onclick="gmShowJoin()">🔗 JOIN</button>
+                </div>
+            </div>
+
+            <div id="gmHostArea" class="hidden">
+                <div class="room-code-container" onclick="copyGmRoomCode()">
+                    <div style="font-size: 0.8em; color: #7f8c8d; margin-bottom: 5px;">Room Code:</div>
+                    <div class="room-code" id="gmRoomCode">...</div>
+                </div>
+                <button class="btn btn-danger" onclick="gmDisconnect()">Cancel</button>
+            </div>
+
+            <div id="gmJoinArea" class="hidden">
+                <input type="text" id="gmJoinInput" placeholder="Enter room code">
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="gmJoin()">Connect</button>
+                    <button class="btn btn-secondary" onclick="gmBackToSetup()">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="gmMainInterface" class="hidden">
+            <!-- GM Combat View -->
+            <div class="combat-arena">
+                <div class="fighter-display">
+                    <div class="fighter twik">
+                        <div class="fighter-name">🐱 Twik</div>
+                        <div class="hp-container">
+                            <div class="hp-bar twik" id="gmTwikHpBar" style="width: 100%;"></div>
+                            <div class="hp-text" id="gmTwikHpText">100/100</div>
+                        </div>
+                    </div>
+                    <div class="vs-badge">VS</div>
+                    <div class="fighter gm">
+                        <div class="fighter-name">🎲 GM</div>
+                        <div class="hp-container">
+                            <div class="hp-bar gm" id="gmHpBar" style="width: 100%;"></div>
+                            <div class="hp-text" id="gmHpText">100/100</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="combat-log" id="gmCombatLog">Select move!</div>
+                
+                <div class="move-selection">
+                    <button class="move-btn punch" onclick="gmSelectMove('punch')" id="gm-punch">
+                        <span style="font-size: 1.3em;">👊</span>
+                        <span>PUNCH</span>
+                    </button>
+                    <button class="move-btn kick" onclick="gmSelectMove('kick')" id="gm-kick">
+                        <span style="font-size: 1.3em;">🦶</span>
+                        <span>KICK</span>
+                    </button>
+                    <button class="move-btn block" onclick="gmSelectMove('block')" id="gm-block">
+                        <span style="font-size: 1.3em;">🛡️</span>
+                        <span>BLOCK</span>
+                    </button>
+                    <button class="move-btn dodge" onclick="gmSelectMove('dodge')" id="gm-dodge">
+                        <span style="font-size: 1.3em;">💨</span>
+                        <span>DODGE</span>
+                    </button>
+                    <button class="move-btn grapple" onclick="gmSelectMove('grapple')" id="gm-grapple">
+                        <span style="font-size: 1.3em;">🤼</span>
+                        <span>GRAPPLE</span>
+                    </button>
+                </div>
+
+                <div class="combat-controls">
+                    <button class="btn btn-secondary" onclick="resetCombat()" style="font-size: 0.9em;">Reset Fight</button>
+                </div>
+            </div>
+
+            <!-- GM Chat -->
+            <div class="card" style="border-color: var(--chat);">
+                <div class="card-header" style="color: var(--chat);">💬 Message Twik</div>
+                <div class="chat-input-group">
+                    <input type="text" id="gmChatInput" placeholder="Type...">
+                    <button class="btn btn-primary" onclick="gmSendChat()" style="width: auto;">Send</button>
+                </div>
+            </div>
+
+            <!-- GM Feed -->
+            <div class="card">
+                <div class="card-header" style="color: var(--accent);">📊 Feed</div>
+                <div class="gm-feed" id="gmFeed">
+                    <div style="color: #7f8c8d; text-align: center; padding: 20px;">Waiting...</div>
+                </div>
+            </div>
+
+            <button class="btn btn-danger" onclick="gmDisconnect()">Disconnect</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// SAFARI/FIREBASE COMPATIBILITY CHECK
+// ==========================================
+function checkFirebase() {
+    if (typeof firebase === 'undefined') {
+        console.error('Firebase not loaded');
+        document.getElementById('firebaseCheck').style.display = 'block';
+        document.getElementById('gmFirebaseCheck').style.display = 'block';
+        document.getElementById('twikFirebaseConfig').style.display = 'none';
+        document.getElementById('gmFirebaseConfig').style.display = 'none';
+        return false;
+    }
+    return true;
+}
+
+// Check on load
+setTimeout(checkFirebase, 1000);
+
+// ==========================================
+// VIEW MODE
+// ==========================================
+function setViewMode(mode) {
+    const container = document.getElementById('appContainer');
+    const twikPanel = document.getElementById('twikPanel');
+    const gmPanel = document.getElementById('gmPanel');
+    const divider = document.getElementById('panelDivider');
+
+    document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('btn-' + mode).classList.add('active');
+    
+    if (mode === 'split') {
+        twikPanel.classList.remove('hidden-panel');
+        gmPanel.classList.remove('hidden-panel');
+        divider.classList.remove('hidden-divider');
+    } else if (mode === 'twik') {
+        twikPanel.classList.remove('hidden-panel');
+        gmPanel.classList.add('hidden-panel');
+        divider.classList.add('hidden-divider');
+    } else if (mode === 'gm') {
+        twikPanel.classList.add('hidden-panel');
+        gmPanel.classList.remove('hidden-panel');
+        divider.classList.add('hidden-divider');
+    }
+    
+    localStorage.setItem('viewMode', mode);
+}
+
+// Load saved view
+const savedView = localStorage.getItem('viewMode');
+if (savedView) setViewMode(savedView);
+
+// ==========================================
+// FIREBASE SETUP
+// ==========================================
+let twikDb = null, twikRoom = null;
+let gmDb = null, gmRoom = null;
+let roomId = null;
+let isTwikSide = false;
+
+function initTwikFirebase() {
+    if (!checkFirebase()) return;
+    
+    const apiKey = document.getElementById('twikApiKey').value.trim();
+    const url = document.getElementById('twikDatabaseUrl').value.trim();
+    
+    if (!apiKey || !url) {
+        alert('Enter both fields');
+        return;
+    }
+    
+    try {
+        // For iOS Safari compatibility, use try-catch extensively
+        const app = firebase.initializeApp({
+            apiKey: apiKey,
+            databaseURL: url
+        }, 'twikInstance');
+        
+        twikDb = firebase.database(app);
+        
+        document.getElementById('twikFirebaseConfig').classList.add('hidden');
+        document.getElementById('twikSetup').classList.remove('hidden');
+        showToast('Connected!');
+    } catch (e) {
+        alert('Error: ' + e.message);
+        console.error(e);
+    }
+}
+
+function initGmFirebase() {
+    if (!checkFirebase()) return;
+    
+    const apiKey = document.getElementById('gmApiKey').value.trim();
+    const url = document.getElementById('gmDatabaseUrl').value.trim();
+    
+    if (!apiKey || !url) {
+        alert('Enter both fields');
+        return;
+    }
+    
+    try {
+        const app = firebase.initializeApp({
+            apiKey: apiKey,
+            databaseURL: url
+        }, 'gmInstance');
+        
+        gmDb = firebase.database(app);
+        
+        document.getElementById('gmFirebaseConfig').classList.add('hidden');
+        document.getElementById('gmSetup').classList.remove('hidden');
+        showToast('Connected!');
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+// ==========================================
+// COMBAT GAME
+// ==========================================
+const MAX_HP = 100;
+const DAMAGE = 25;
+let combat = { twikHp: MAX_HP, gmHp: MAX_HP, twikMove: null, gmMove: null, round: 1, over: false };
+
+const RULES = {
+    punch: { beats: ['dodge', 'grapple'], name: 'Punch' },
+    kick: { beats: ['block', 'grapple'], name: 'Kick' },
+    block: { beats: ['punch', 'kick'], name: 'Block' },
+    dodge: { beats: ['kick', 'block'], name: 'Dodge' },
+    grapple: { beats: ['block', 'dodge'], name: 'Grapple' }
+};
+
+function initCombat() {
+    if (!twikRoom && !gmRoom) return;
+    
+    const room = twikRoom || gmRoom;
+    
+    // Listen for combat updates
+    room.child('combat').on('value', (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        
+        combat = data;
+        updateCombatUI();
+        
+        // If both moves in and not processed, resolve
+        if (combat.twikMove && combat.gmMove && !combat.processed) {
+            setTimeout(resolveRound, 500);
+        }
+    });
+}
+
+function updateCombatUI() {
+    // Update all HP bars
+    document.getElementById('twikHpBar').style.width = combat.twikHp + '%';
+    document.getElementById('twikHpText').textContent = combat.twikHp + '/100';
+    document.getElementById('gmTwikHpBar').style.width = combat.twikHp + '%';
+    document.getElementById('gmTwikHpText').textContent = combat.twikHp + '/100';
+    
+    document.getElementById('twikGmHpBar').style.width = combat.gmHp + '%';
+    document.getElementById('twikGmHpText').textContent = combat.gmHp + '/100';
+    document.getElementById('gmHpBar').style.width = combat.gmHp + '%';
+    document.getElementById('gmHpText').textContent = combat.gmHp + '/100';
+    
+    // Update colors based on HP
+    updateBarColor('twikHpBar', combat.twikHp);
+    updateBarColor('gmTwikHpBar', combat.twikHp);
+    updateBarColor('twikGmHpBar', combat.gmHp, true);
+    updateBarColor('gmHpBar', combat.gmHp, true);
+    
+    // Update logs
+    if (combat.lastResult) {
+        document.getElementById('twikCombatLog').innerHTML = combat.lastResult;
+        document.getElementById('gmCombatLog').innerHTML = combat.lastResult;
+    }
+    
+    // Enable/disable buttons
+    const btns = document.querySelectorAll('.move-btn');
+    btns.forEach(btn => {
+        btn.disabled = (isTwikSide && combat.twikMove) || (!isTwikSide && combat.gmMove) || combat.over;
+        btn.classList.remove('selected');
+    });
+    
+    // Highlight selected
+    if (combat.twikMove) document.getElementById('twik-' + combat.twikMove)?.classList.add('selected');
+    if (combat.gmMove) document.getElementById('gm-' + combat.gmMove)?.classList.add('selected');
+}
+
+function updateBarColor(id, hp, isEnemy = false) {
+    const bar = document.getElementById(id);
+    if (!bar) return;
+    if (hp <= 30) bar.style.background = '#e74c3c';
+    else if (hp <= 60) bar.style.background = '#f39c12';
+    else bar.style.background = isEnemy ? '#e74c3c' : '#27ae60';
+}
+
+function selectMove(move) {
+    if (!twikRoom || combat.twikMove || combat.over) return;
+    
+    twikRoom.child('combat').update({ twikMove: move });
+    isTwikSide = true;
+}
+
+function gmSelectMove(move) {
+    if (!gmRoom || combat.gmMove || combat.over) return;
+    
+    gmRoom.child('combat').update({ gmMove: move });
+    isTwikSide = false;
+}
+
+function resolveRound() {
+    const { twikMove, gmMove } = combat;
+    let result = '';
+    let winner = null;
+    
+    if (twikMove === gmMove) {
+        result = 'DRAW! Both used ' + RULES[twikMove].name;
+    } else if (RULES[twikMove].beats.includes(gmMove)) {
+        result = 'TWIK WINS! ' + RULES[twikMove].name + ' beats ' + RULES[gmMove].name;
+        combat.gmHp = Math.max(0, combat.gmHp - DAMAGE);
+        winner = 'twik';
+    } else {
+        result = 'GM WINS! ' + RULES[gmMove].name + ' beats ' + RULES[twikMove].name;
+        combat.twikHp = Math.max(0, combat.twikHp - DAMAGE);
+        winner = 'gm';
+    }
+    
+    if (combat.twikHp <= 0) {
+        result = '🏆 GM WINS MATCH! 🏆';
+        combat.over = true;
+    } else if (combat.gmHp <= 0) {
+        result = '🏆 TWIK WINS MATCH! 🏆';
+        combat.over = true;
+    }
+    
+    combat.lastResult = result;
+    combat.processed = true;
+    
+    // Save to Firebase
+    const room = twikRoom || gmRoom;
+    room.child('combat').set(combat);
+    
+    // Log to feed
+    room.child('messages').push({
+        type: 'fight',
+        result: result,
+        twikMove: twikMove,
+        gmMove: gmMove,
+        timestamp: Date.now()
+    });
+    
+    // Reset for next round if not over
+    if (!combat.over) {
+        setTimeout(() => {
+            combat.twikMove = null;
+            combat.gmMove = null;
+            combat.processed = false;
+            combat.round++;
+            room.child('combat').update({
+                twikMove: null, gmMove: null, processed: false, round: combat.round
+            });
+        }, 2000);
+    }
+}
+
+function resetCombat() {
+    combat = { twikHp: MAX_HP, gmHp: MAX_HP, twikMove: null, gmMove: null, round: 1, over: false, processed: false };
+    const room = twikRoom || gmRoom;
+    if (room) room.child('combat').set(combat);
+}
+
+// ==========================================
+// CONNECTION HANDLING
+// ==========================================
+function twikHost() {
+    if (!twikDb) { alert('Connect to Firebase first'); return; }
+    
+    roomId = 'room_' + Math.random().toString(36).substr(2, 8);
+    twikRoom = twikDb.ref('rooms/' + roomId);
+    
+    document.getElementById('twikSetup').classList.add('hidden');
+    document.getElementById('twikHostArea').classList.remove('hidden');
+    document.getElementById('twikRoomCode').textContent = roomId;
+    document.getElementById('twikStatus').textContent = '● Waiting for GM';
+    document.getElementById('twikStatus').className = 'status-indicator status-connecting';
+    
+    // Init combat
+    twikRoom.child('combat').set(combat);
+    initCombat();
+    
+    // Listen for GM
+    twikRoom.child('gmConnected').on('value', (snap) => {
+        if (snap.val() === true) {
+            document.getElementById('twikConnectionHub').classList.add('connected');
+            document.getElementById('twikHostArea').classList.add('hidden');
+            document.getElementById('twikMainInterface').classList.remove('hidden');
+            document.getElementById('twikStatus').textContent = '● Connected';
+            document.getElementById('twikStatus').className = 'status-indicator status-connected';
+            
+            // Listen for messages
+            twikRoom.child('messages').on('child_added', (snap) => {
+                const msg = snap.val();
+                if (msg && msg.from === 'gm' && msg.type === 'chat') {
+                    addChat('twikChatBox', msg.msg, false);
+                }
+            });
+        }
+    });
+    
+    twikRoom.child('twikConnected').set(true);
+    isTwikSide = true;
+}
+
+function twikShowJoin() {
+    document.getElementById('twikSetup').classList.add('hidden');
+    document.getElementById('twikJoinArea').classList.remove('hidden');
+}
+
+function twikJoin() {
+    const code = document.getElementById('twikJoinInput').value.trim();
+    if (!code) return;
+    
+    roomId = code;
+    twikRoom = twikDb.ref('rooms/' + roomId);
+    
+    twikRoom.once('value').then((snap) => {
+        if (snap.exists()) {
+            twikRoom.child('twikConnected').set(true);
+            document.getElementById('twikConnectionHub').classList.add('connected');
+            document.getElementById('twikJoinArea').classList.add('hidden');
+            document.getElementById('twikMainInterface').classList.remove('hidden');
+            document.getElementById('twikStatus').textContent = '● Connected';
+            document.getElementById('twikStatus').className = 'status-indicator status-connected';
+            
+            initCombat();
+            
+            twikRoom.child('messages').on('child_added', (snap) => {
+                const msg = snap.val();
+                if (msg && msg.from === 'gm' && msg.type === 'chat') {
+                    addChat('twikChatBox', msg.msg, false);
+                }
+            });
+            isTwikSide = true;
+        } else {
+            alert('Room not found');
+        }
+    });
+}
+
+function twikBackToSetup() {
+    document.getElementById('twikJoinArea').classList.add('hidden');
+    document.getElementById('twikSetup').classList.remove('hidden');
+}
+
+function twikDisconnect() {
+    if (twikRoom) {
+        twikRoom.child('twikConnected').set(false);
+        twikRoom.off();
+    }
+    location.reload();
+}
+
+// GM Functions
+function gmHost() {
+    if (!gmDb) { alert('Connect to Firebase first'); return; }
+    
+    roomId = 'room_' + Math.random().toString(36).substr(2, 8);
+    gmRoom = gmDb.ref('rooms/' + roomId);
+    
+    document.getElementById('gmSetup').classList.add('hidden');
+    document.getElementById('gmHostArea').classList.remove('hidden');
+    document.getElementById('gmRoomCode').textContent = roomId;
+    document.getElementById('gmStatus').textContent = '● Waiting for Twik';
+    document.getElementById('gmStatus').className = 'status-indicator status-connecting';
+    
+    gmRoom.child('combat').set(combat);
+    initCombat();
+    
+    gmRoom.child('twikConnected').on('value', (snap) => {
+        if (snap.val() === true) {
+            gmRoom.child('gmConnected').set(true);
+            document.getElementById('gmConnectionHub').classList.add('connected');
+            document.getElementById('gmHostArea').classList.add('hidden');
+            document.getElementById('gmMainInterface').classList.remove('hidden');
+            document.getElementById('gmStatus').textContent = '● Connected';
+            document.getElementById('gmStatus').className = 'status-indicator status-connected';
+            
+            gmRoom.child('messages').on('child_added', (snap) => {
+                const msg = snap.val();
+                if (msg && msg.from === 'twik') handleGmMessage(msg);
+            });
+        }
+    });
+}
+
+function gmShowJoin() {
+    document.getElementById('gmSetup').classList.add('hidden');
+    document.getElementById('gmJoinArea').classList.remove('hidden');
+}
+
+function gmJoin() {
+    const code = document.getElementById('gmJoinInput').value.trim();
+    if (!code) return;
+    
+    roomId = code;
+    gmRoom = gmDb.ref('rooms/' + roomId);
+    
+    gmRoom.once('value').then((snap) => {
+        if (snap.exists()) {
+            gmRoom.child('gmConnected').set(true);
+            document.getElementById('gmConnectionHub').classList.add('connected');
+            document.getElementById('gmJoinArea').classList.add('hidden');
+            document.getElementById('gmMainInterface').classList.remove('hidden');
+            document.getElementById('gmStatus').textContent = '● Connected';
+            document.getElementById('gmStatus').className = 'status-indicator status-connected';
+            
+            initCombat();
+            
+            gmRoom.child('messages').on('child_added', (snap) => {
+                const msg = snap.val();
+                if (msg && msg.from === 'twik') handleGmMessage(msg);
+            });
+        } else {
+            alert('Room not found');
+        }
+    });
+}
+
+function gmBackToSetup() {
+    document.getElementById('gmJoinArea').classList.add('hidden');
+    document.getElementById('gmSetup').classList.remove('hidden');
+}
+
+function gmDisconnect() {
+    if (gmRoom) {
+        gmRoom.child('gmConnected').set(false);
+        gmRoom.off();
+    }
+    location.reload();
+}
+
+// ==========================================
+// MESSAGING
+// ==========================================
+function sendStatus(type, msg) {
+    if (!twikRoom) return;
+    twikRoom.child('messages').push({ type: 'status', statusType: type, msg: msg, from: 'twik', time: Date.now() });
+}
+
+function sendChat() {
+    const input = document.getElementById('twikChatInput');
+    const msg = input.value.trim();
+    if (!msg || !twikRoom) return;
+    
+    twikRoom.child('messages').push({ type: 'chat', msg: msg, from: 'twik', time: Date.now() });
+    addChat('twikChatBox', msg, true);
+    input.value = '';
+}
+
+function gmSendChat() {
+    const input = document.getElementById('gmChatInput');
+    const msg = input.value.trim();
+    if (!msg || !gmRoom) return;
+    
+    gmRoom.child('messages').push({ type: 'chat', msg: msg, from: 'gm', time: Date.now() });
+    addChat('gmFeed', 'You: ' + msg, true);
+    input.value = '';
+}
+
+function addChat(boxId, msg, isMe) {
+    const box = document.getElementById(boxId);
+    if (!box) return;
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + (isMe ? 'twik' : 'gm');
+    div.textContent = msg;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+function handleGmMessage(data) {
+    const feed = document.getElementById('gmFeed');
+    // Remove waiting message
+    if (feed.children.length === 1 && feed.children[0].textContent === 'Waiting...') {
+        feed.innerHTML = '';
+    }
+    
+    const card = document.createElement('div');
+    card.className = 'feed-card';
+    if (data.type === 'status') card.style.borderLeftColor = 'var(--' + data.statusType + ')';
+    else if (data.type === 'fight') card.classList.add('fight');
+    else card.style.borderLeftColor = 'var(--accent)';
+    
+    let content = '';
+    if (data.type === 'chat') content = 'Twik: ' + data.msg;
+    else if (data.type === 'status') content = '<strong>' + data.msg + '</strong>';
+    else if (data.type === 'fight') content = '<strong>' + data.result + '</strong>';
+    else content = JSON.stringify(data);
+    
+    card.innerHTML = '<div class="feed-type">' + (data.type || 'msg').toUpperCase() + '</div><div class="feed-content">' + content + '</div>';
+    feed.insertBefore(card, feed.firstChild);
+}
+
+// ==========================================
+// SKILLS & DICE
+// ==========================================
+const skills = ['Acrobatics','Athletics','Computers','Culture','Diplomacy','Deception','Engineering','Intimidate','Life Science','Medicine','Mysticism','Perception','Physical Science','Piloting','Sense Motive','Stealth','Survival'];
+
+const skillsGrid = document.getElementById('skillsGrid');
+skills.forEach(s => {
+    const safe = s.replace(/\s+/g, '');
+    const div = document.createElement('div');
+    div.style.cssText = 'display: contents;';
+    div.innerHTML = '<div class="skill-name">' + s + '</div><input type="number" id="mod-' + safe + '" class="mod-input" placeholder="+0"><button class="btn btn-primary" style="padding: 8px; font-size: 0.8em;" onclick="rollSkill(\'' + s + '\')">Roll</button>';
+    skillsGrid.appendChild(div);
+});
+
+function rollSkill(skill) {
+    if (!twikRoom) return;
+    const safe = skill.replace(/\s+/g, '');
+    const mod = parseInt(document.getElementById('mod-' + safe).value) || 0;
+    const roll = Math.floor(Math.random() * 20) + 1;
+    const total = roll + mod;
+    
+    twikRoom.child('messages').push({ type: 'skill', skill: skill, roll: roll, mod: mod, total: total, from: 'twik', time: Date.now() });
+    addChat('twikChatBox', skill + ': ' + total + ' (' + roll + '+' + mod + ')', true);
+}
+
+function rollComplexDice() {
+    if (!twikRoom) return;
+    const input = document.getElementById('diceInput').value.toUpperCase().replace(/\s/g, '');
+    if (!input) return;
+    
+    // Simple parser for 3D6+5 format
+    let total = 0;
+    const parts = input.split('+');
+    
+    parts.forEach(part => {
+        if (part.includes('D')) {
+            const [count, sides] = part.split('D');
+            const num = parseInt(count) || 1;
+            const die = parseInt(sides) || 6;
+            for (let i = 0; i < num; i++) {
+                total += Math.floor(Math.random() * die) + 1;
+            }
+        } else {
+            total += parseInt(part) || 0;
+        }
+    });
+    
+    twikRoom.child('messages').push({ type: 'dice', input: input, total: total, from: 'twik', time: Date.now() });
+    addChat('twikChatBox', 'Damage: ' + total, true);
+}
+
+function sendAction(cat, act, det) {
+    if (!twikRoom) return;
+    twikRoom.child('messages').push({ type: 'action', category: cat, action: act, detail: det, from: 'twik', time: Date.now() });
+}
+
+function copyRoomCode() {
+    const code = document.getElementById('twikRoomCode').textContent;
+    navigator.clipboard.writeText(code).then(() => showToast('Copied!'));
+}
+
+function copyGmRoomCode() {
+    const code = document.getElementById('gmRoomCode').textContent;
+    navigator.clipboard.writeText(code).then(() => showToast('Copied!'));
+}
+
+function showToast(msg) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #141920; color: white; padding: 12px 24px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1001;';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}
+
+// Enter key handlers
+document.getElementById('twikChatInput')?.addEventListener('keypress', e => { if (e.key === 'Enter') sendChat(); });
+document.getElementById('gmChatInput')?.addEventListener('keypress', e => { if (e.key === 'Enter') gmSendChat(); });
+</script>
+
+</body>
+</html>
