@@ -101,7 +101,18 @@
             -webkit-overflow-scrolling: touch; font-size: 0.95em;
         }
         .log-entry { margin: 4px 0; padding: 6px 10px; border-radius: 6px; word-wrap: break-word; }
-        .log-status { background: rgba(39,174,96,0.2); border-left: 3px solid var(--agree); }
+        
+        /* Status log colors */
+        .log-status-agree { background: rgba(39,174,96,0.2); border-left: 3px solid var(--agree); color: #2ecc71; }
+        .log-status-disagree { background: rgba(231,76,60,0.2); border-left: 3px solid var(--disagree); color: #e74c3c; }
+        .log-status-sad { background: rgba(52,152,219,0.2); border-left: 3px solid var(--sad); color: #5dade2; }
+        .log-status-panic { background: rgba(243,156,18,0.2); border-left: 3px solid var(--panic); color: #f5b041; animation: panic-glow 2s infinite; }
+        
+        @keyframes panic-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(243,156,18,0.3); }
+            50% { box-shadow: 0 0 15px rgba(243,156,18,0.6); }
+        }
+        
         .log-chat-tw { background: #2980b9; margin-left: 20%; text-align: right; }
         .log-chat-gm { background: #34495e; margin-right: 20%; }
         .log-spell { background: rgba(155,89,182,0.2); border-left: 3px solid var(--spell); color: #d2b4de; }
@@ -136,54 +147,109 @@
             margin-bottom: 15px; letter-spacing: 3px; text-shadow: 0 0 10px #ff0066;
         }
 
-        .pixel-fighters { display: flex; justify-content: space-between; align-items: flex-end; height: 80px; margin-bottom: 20px; padding: 0 20px; position: relative; }
+        .fighters-container { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+            height: 80px; 
+            margin-bottom: 20px; 
+            padding: 0 40px; 
+            position: relative;
+        }
         
-        /* Twik Pixel Fighter */
-        .pixel-twik {
-            width: 40px; height: 60px; position: relative;
-            box-shadow: 
-                12px 4px 0 #2ecc71, 16px 4px 0 #2ecc71,
-                8px 8px 0 #2ecc71, 12px 8px 0 #27ae60, 16px 8px 0 #27ae60, 20px 8px 0 #2ecc71,
-                8px 12px 0 #2ecc71, 12px 12px 0 #2ecc71, 16px 12px 0 #2ecc71, 20px 12px 0 #2ecc71,
-                12px 16px 0 #27ae60, 16px 16px 0 #27ae60,
-                8px 20px 0 #27ae60, 12px 20px 0 #2ecc71, 16px 20px 0 #2ecc71, 20px 20px 0 #27ae60,
-                8px 24px 0 #27ae60, 12px 24px 0 #2ecc71, 16px 24px 0 #2ecc71, 20px 24px 0 #27ae60,
-                8px 28px 0 #27ae60, 12px 28px 0 #2ecc71, 16px 28px 0 #2ecc71, 20px 28px 0 #27ae60,
-                8px 32px 0 #34495e, 20px 32px 0 #34495e,
-                8px 36px 0 #34495e, 20px 36px 0 #34495e,
-                8px 40px 0 #2c3e50, 20px 40px 0 #2c3e50,
-                8px 44px 0 #2c3e50, 20px 44px 0 #2c3e50,
-                4px 20px 0 #2ecc71, 24px 20px 0 #2ecc71,
-                4px 24px 0 #2ecc71, 24px 24px 0 #2ecc71,
-                0px 28px 0 #2ecc71, 28px 28px 0 #2ecc71;
-            transition: transform 0.2s;
+        /* Stick Figure Twik - Green */
+        .stick-twik {
+            width: 3px;
+            height: 30px;
+            background: #2ecc71;
+            position: relative;
+            border-radius: 2px;
+            box-shadow: -6px 20px 0 -1px #2ecc71, 6px 20px 0 -1px #2ecc71; /* Legs */
         }
 
-        /* GM Pixel Fighter */
-        .pixel-gm {
-            width: 40px; height: 60px; position: relative;
-            box-shadow:
-                12px 4px 0 #e74c3c, 16px 4px 0 #e74c3c,
-                8px 8px 0 #c0392b, 12px 8px 0 #e74c3c, 16px 8px 0 #e74c3c, 20px 8px 0 #c0392b,
-                8px 12px 0 #e74c3c, 12px 12px 0 #c0392b, 16px 12px 0 #c0392b, 20px 12px 0 #e74c3c,
-                12px 10px 0 #ffd700, 16px 10px 0 #ffd700,
-                12px 16px 0 #c0392b, 16px 16px 0 #c0392b,
-                8px 20px 0 #c0392b, 12px 20px 0 #e74c3c, 16px 20px 0 #e74c3c, 20px 20px 0 #c0392b,
-                8px 24px 0 #c0392b, 12px 24px 0 #e74c3c, 16px 24px 0 #e74c3c, 20px 24px 0 #c0392b,
-                8px 32px 0 #2c3e50, 20px 32px 0 #2c3e50,
-                8px 36px 0 #2c3e50, 20px 36px 0 #2c3e50,
-                4px 20px 0 #e74c3c, 24px 20px 0 #e74c3c,
-                4px 24px 0 #e74c3c, 24px 24px 0 #e74c3c,
-                0px 28px 0 #e74c3c, 28px 28px 0 #e74c3c;
-            transition: transform 0.2s;
+        .stick-twik::before {
+            content: '';
+            position: absolute;
+            top: -14px;
+            left: -6px;
+            width: 14px;
+            height: 14px;
+            border: 3px solid #2ecc71;
+            border-radius: 50%;
+            background: transparent;
         }
 
-        @keyframes attack-left { 0% { transform: translateX(0); } 50% { transform: translateX(40px) scale(1.1); } 100% { transform: translateX(0); } }
-        @keyframes attack-right { 0% { transform: translateX(0); } 50% { transform: translateX(-40px) scale(1.1); } 100% { transform: translateX(0); } }
-        @keyframes hurt { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-5deg); } 75% { transform: translateX(5px) rotate(5deg); } }
-        @keyframes victory { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        @keyframes draw { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        @keyframes block-both { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.9); opacity: 0.8; } }
+        .stick-twik::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: -13px;
+            width: 28px;
+            height: 3px;
+            background: #2ecc71;
+            border-radius: 2px;
+        }
+
+        /* Stick Figure GM - Red */
+        .stick-gm {
+            width: 3px;
+            height: 30px;
+            background: #e74c3c;
+            position: relative;
+            border-radius: 2px;
+            box-shadow: -6px 20px 0 -1px #e74c3c, 6px 20px 0 -1px #e74c3c; /* Legs */
+        }
+
+        .stick-gm::before {
+            content: '';
+            position: absolute;
+            top: -14px;
+            left: -6px;
+            width: 14px;
+            height: 14px;
+            border: 3px solid #e74c3c;
+            border-radius: 50%;
+            background: transparent;
+        }
+
+        .stick-gm::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: -13px;
+            width: 28px;
+            height: 3px;
+            background: #e74c3c;
+            border-radius: 2px;
+        }
+
+        @keyframes attack-left { 
+            0% { transform: translateX(0) rotate(0deg); } 
+            50% { transform: translateX(40px) rotate(-5deg); } 
+            100% { transform: translateX(0) rotate(0deg); } 
+        }
+        @keyframes attack-right { 
+            0% { transform: translateX(0) rotate(0deg); } 
+            50% { transform: translateX(-40px) rotate(5deg); } 
+            100% { transform: translateX(0) rotate(0deg); } 
+        }
+        @keyframes hurt { 
+            0%, 100% { transform: translateX(0); } 
+            25% { transform: translateX(-8px) rotate(-10deg); } 
+            75% { transform: translateX(8px) rotate(10deg); } 
+        }
+        @keyframes victory { 
+            0%, 100% { transform: translateY(0); } 
+            50% { transform: translateY(-15px); } 
+        }
+        @keyframes draw { 
+            0%, 100% { transform: scale(1); } 
+            50% { transform: scale(1.1); } 
+        }
+        @keyframes block-both { 
+            0%, 100% { transform: scale(1); opacity: 1; } 
+            50% { transform: scale(0.9); opacity: 0.7; } 
+        }
 
         .fighter-attack-left { animation: attack-left 0.4s ease-in-out; }
         .fighter-attack-right { animation: attack-right 0.4s ease-in-out; }
@@ -227,7 +293,7 @@
         @media (max-width: 400px) {
             .spells-grid { grid-template-columns: 1fr; }
             .move-selection { grid-template-columns: repeat(3, 1fr); }
-            .pixel-twik, .pixel-gm { transform: scale(0.8); }
+            .fighters-container { padding: 0 20px; }
         }
     </style>
 </head>
@@ -339,9 +405,9 @@
                     <div class="hp-label">GM<br><div class="hp-bar"><div class="hp-fill gm" id="gmHpBar" style="width: 100%"></div></div></div>
                 </div>
 
-                <div class="pixel-fighters">
-                    <div class="pixel-twik" id="twikFighter"></div>
-                    <div class="pixel-gm" id="gmFighter"></div>
+                <div class="fighters-container">
+                    <div class="stick-twik" id="twikFighter"></div>
+                    <div class="stick-gm" id="gmFighter"></div>
                 </div>
 
                 <div class="combat-log" id="combatLog">Select your move!</div>
@@ -414,9 +480,9 @@
                     <div class="hp-label">GM<br><div class="hp-bar"><div class="hp-fill gm" id="gmGmHpBar" style="width: 100%"></div></div></div>
                 </div>
 
-                <div class="pixel-fighters">
-                    <div class="pixel-twik" id="gmTwikFighter"></div>
-                    <div class="pixel-gm" id="gmGmFighter"></div>
+                <div class="fighters-container">
+                    <div class="stick-twik" id="gmTwikFighter"></div>
+                    <div class="stick-gm" id="gmGmFighter"></div>
                 </div>
 
                 <div class="combat-log" id="gmCombatLog">Waiting for moves...</div>
@@ -457,7 +523,7 @@
 <script>
 // Firebase refs
 let twikDb = null, twikRoom = null, gmDb = null, gmRoom = null, roomId = null;
-let isTwik = false;  // false means GM
+let isTwik = false;
 
 // Combat state
 let combat = { twikHp: 100, gmHp: 100, twikMove: null, gmMove: null, round: 1, over: false, processed: false };
@@ -526,13 +592,12 @@ function twikHost() {
     if (!twikDb) return;
     roomId = 'room_' + Math.random().toString(36).substr(2, 8);
     twikRoom = twikDb.ref('rooms/' + roomId);
-    isTwik = true;  // Set to Twik mode
+    isTwik = true;
     
     document.getElementById('twikSetup').classList.add('hidden');
     document.getElementById('twikHostArea').classList.remove('hidden');
     document.getElementById('twikRoomCode').textContent = roomId;
     
-    // Initialize combat
     combat = { twikHp: 100, gmHp: 100, twikMove: null, gmMove: null, round: 1, over: false, processed: false };
     twikRoom.child('combat').set(combat);
     initCombatListeners();
@@ -550,7 +615,7 @@ function twikHost() {
     
     twikRoom.child('messages').on('child_added', snap => {
         const m = snap.val();
-        if (m.from === 'gm' && m.type === 'chat') logMessage('twikChatBox', 'GM: ' + m.msg, 'chat-gm');
+        if (m && m.from === 'gm' && m.type === 'chat') logMessage('twikChatBox', 'GM: ' + m.msg, 'chat-gm');
     });
     
     twikRoom.child('twikConnected').set(true);
@@ -566,7 +631,7 @@ function twikJoin() {
     if (!code) return;
     roomId = code;
     twikRoom = twikDb.ref('rooms/' + roomId);
-    isTwik = true;  // Set to Twik mode
+    isTwik = true;
     
     twikRoom.once('value').then(snap => {
         if (snap.exists()) {
@@ -579,7 +644,7 @@ function twikJoin() {
             initCombatListeners();
             twikRoom.child('messages').on('child_added', snap => {
                 const m = snap.val();
-                if (m.from === 'gm' && m.type === 'chat') logMessage('twikChatBox', 'GM: ' + m.msg, 'chat-gm');
+                if (m && m.from === 'gm' && m.type === 'chat') logMessage('twikChatBox', 'GM: ' + m.msg, 'chat-gm');
             });
             logMessage('twikChatBox', 'Connected to GM', 'system');
         } else {
@@ -603,13 +668,12 @@ function gmHost() {
     if (!gmDb) return;
     roomId = 'room_' + Math.random().toString(36).substr(2, 8);
     gmRoom = gmDb.ref('rooms/' + roomId);
-    isTwik = false;  // Set to GM mode (not Twik)
+    isTwik = false;
     
     document.getElementById('gmSetup').classList.add('hidden');
     document.getElementById('gmHostArea').classList.remove('hidden');
     document.getElementById('gmRoomCode').textContent = roomId;
     
-    // Initialize combat
     combat = { twikHp: 100, gmHp: 100, twikMove: null, gmMove: null, round: 1, over: false, processed: false };
     gmRoom.child('combat').set(combat);
     initCombatListeners();
@@ -637,7 +701,7 @@ function gmJoin() {
     if (!code) return;
     roomId = code;
     gmRoom = gmDb.ref('rooms/' + code);
-    isTwik = false;  // Set to GM mode (not Twik)
+    isTwik = false;
     
     gmRoom.once('value').then(snap => {
         if (snap.exists()) {
@@ -670,7 +734,7 @@ function initGmListeners() {
         const m = snap.val();
         if (!m) return;
         
-        if (m.type === 'status') logMessage('gmLog', 'Twik ' + m.msg.toLowerCase().replace('twik ', ''), 'status');
+        if (m.type === 'status') logMessage('gmLog', 'Twik ' + m.msg.toLowerCase().replace('twik ', ''), 'status-' + m.statusType);
         else if (m.type === 'chat' && m.from === 'twik') logMessage('gmLog', 'Twik: ' + m.msg, 'chat-tw');
         else if (m.type === 'spell') logMessage('gmLog', 'Twik cast: ' + m.spell, 'spell');
         else if (m.type === 'roll') logMessage('gmLog', m.msg, 'roll');
@@ -681,8 +745,9 @@ function initGmListeners() {
 // Actions
 function sendStatus(type, msg) {
     if (!twikRoom) return;
-    twikRoom.child('messages').push({ type: 'status', msg: msg, from: 'twik', timestamp: Date.now() });
-    logMessage('twikChatBox', msg, 'status');
+    // Store both type and msg for colored logging
+    twikRoom.child('messages').push({ type: 'status', statusType: type, msg: msg, from: 'twik', timestamp: Date.now() });
+    logMessage('twikChatBox', msg, 'status-' + type);
     playStatusSound(type);
 }
 
@@ -761,7 +826,18 @@ function initCombatListeners() {
     room.child('combat').on('value', snap => {
         const data = snap.val();
         if (!data) return;
-        combat = data;
+        
+        combat = {
+            twikHp: data.twikHp || 100,
+            gmHp: data.gmHp || 100,
+            twikMove: data.twikMove || null,
+            gmMove: data.gmMove || null,
+            round: data.round || 1,
+            over: data.over || false,
+            processed: data.processed || false,
+            lastResult: data.lastResult || null
+        };
+        
         updateCombatUI();
         
         if (combat.twikMove && combat.gmMove && !combat.processed) {
@@ -772,18 +848,24 @@ function initCombatListeners() {
 
 function updateCombatUI() {
     // Update HP bars
-    document.getElementById('twikHpBar').style.width = combat.twikHp + '%';
-    document.getElementById('gmTwikHpBar').style.width = combat.twikHp + '%';
-    document.getElementById('gmHpBar').style.width = combat.gmHp + '%';
-    document.getElementById('gmGmHpBar').style.width = combat.gmHp + '%';
+    const tHp = document.getElementById('twikHpBar');
+    const gHp = document.getElementById('gmHpBar');
+    const gmTHp = document.getElementById('gmTwikHpBar');
+    const gmGHp = document.getElementById('gmGmHpBar');
     
-    // Update Twik's buttons (if Twik)
+    if (tHp) tHp.style.width = combat.twikHp + '%';
+    if (gHp) gHp.style.width = combat.gmHp + '%';
+    if (gmTHp) gmTHp.style.width = combat.twikHp + '%';
+    if (gmGHp) gmGHp.style.width = combat.gmHp + '%';
+    
+    // Update Twik's buttons
     if (isTwik) {
-        const btns = ['punch', 'kick', 'block', 'dodge', 'grapple'];
-        btns.forEach(move => {
+        const moves = ['punch', 'kick', 'block', 'dodge', 'grapple'];
+        moves.forEach(move => {
             const btn = document.getElementById('btn-' + move);
             if (btn) {
-                btn.disabled = combat.twikMove !== null || combat.over;
+                const shouldDisable = (combat.twikMove != null) || combat.over;
+                btn.disabled = shouldDisable;
                 btn.classList.remove('selected');
                 
                 if (combat.twikMove === move) {
@@ -792,24 +874,26 @@ function updateCombatUI() {
             }
         });
         
-        // Update status text
         const log = document.getElementById('combatLog');
-        if (combat.twikMove && !combat.gmMove) {
-            log.textContent = 'You chose ' + RULES[combat.twikMove].name + '. Waiting for GM...';
-        } else if (!combat.twikMove && combat.gmMove) {
-            log.textContent = 'GM is ready. Your turn!';
-        } else if (!combat.twikMove && !combat.gmMove) {
-            log.textContent = 'Select your move!';
+        if (log) {
+            if (combat.twikMove && !combat.gmMove) {
+                log.textContent = 'You chose ' + RULES[combat.twikMove].name + '. Waiting for GM...';
+            } else if (!combat.twikMove && combat.gmMove) {
+                log.textContent = 'GM is ready. Your turn!';
+            } else if (!combat.twikMove && !combat.gmMove) {
+                log.textContent = 'Select your move!';
+            }
         }
     }
     
-    // Update GM's buttons (if GM)
+    // Update GM's buttons
     if (!isTwik) {
-        const btns = ['punch', 'kick', 'block', 'dodge', 'grapple'];
-        btns.forEach(move => {
+        const moves = ['punch', 'kick', 'block', 'dodge', 'grapple'];
+        moves.forEach(move => {
             const btn = document.getElementById('gm-btn-' + move);
             if (btn) {
-                btn.disabled = combat.gmMove !== null || combat.over;
+                const shouldDisable = (combat.gmMove != null) || combat.over;
+                btn.disabled = shouldDisable;
                 btn.classList.remove('selected');
                 
                 if (combat.gmMove === move) {
@@ -818,31 +902,28 @@ function updateCombatUI() {
             }
         });
         
-        // Update status text
         const log = document.getElementById('gmCombatLog');
-        if (combat.gmMove && !combat.twikMove) {
-            log.textContent = 'You chose ' + RULES[combat.gmMove].name + '. Waiting for Twik...';
-        } else if (!combat.gmMove && combat.twikMove) {
-            log.textContent = 'Twik is ready. Your turn!';
-        } else if (!combat.gmMove && !combat.twikMove) {
-            log.textContent = 'Select your move!';
+        if (log) {
+            if (combat.gmMove && !combat.twikMove) {
+                log.textContent = 'You chose ' + RULES[combat.gmMove].name + '. Waiting for Twik...';
+            } else if (!combat.gmMove && combat.twikMove) {
+                log.textContent = 'Twik is ready. Your turn!';
+            } else if (!combat.gmMove && !combat.twikMove) {
+                log.textContent = 'Select your move!';
+            }
         }
     }
 }
 
 function selectMove(move) {
-    // Twik selects move
-    if (!twikRoom || combat.twikMove !== null || combat.over || !isTwik) {
-        console.log('Cannot select:', {twikRoom: !!twikRoom, twikMove: combat.twikMove, over: combat.over, isTwik});
+    if (!twikRoom || combat.twikMove != null || combat.over || !isTwik) {
         return;
     }
     twikRoom.child('combat').update({ twikMove: move });
 }
 
 function gmSelectMove(move) {
-    // GM selects move
-    if (!gmRoom || combat.gmMove !== null || combat.over || isTwik) {
-        console.log('Cannot select:', {gmRoom: !!gmRoom, gmMove: combat.gmMove, over: combat.over, isTwik});
+    if (!gmRoom || combat.gmMove != null || combat.over || isTwik) {
         return;
     }
     gmRoom.child('combat').update({ gmMove: move });
@@ -855,7 +936,6 @@ function resolveCombat() {
     let isDraw = false;
     
     if (twikMove === gmMove) {
-        // DRAW - Same move cancels out
         result = 'DRAW! Both used ' + RULES[twikMove].name + ' - Cancelled!';
         isDraw = true;
         winner = 'draw';
@@ -869,7 +949,6 @@ function resolveCombat() {
         combat.twikHp = Math.max(0, combat.twikHp - 25);
     }
     
-    // Check for match end
     if (combat.twikHp <= 0) {
         result = 'GM WINS THE MATCH!';
         combat.over = true;
@@ -885,7 +964,6 @@ function resolveCombat() {
     room.child('combat').set(combat);
     room.child('messages').push({ type: 'combat', result: result, from: 'system', timestamp: Date.now() });
     
-    // Update UI with result styling
     const twikLog = document.getElementById('combatLog');
     const gmLog = document.getElementById('gmCombatLog');
     
@@ -898,10 +976,8 @@ function resolveCombat() {
         gmLog.className = 'combat-log ' + (isDraw ? 'draw' : (winner === 'twik' ? 'twik-wins' : (winner === 'gm' ? 'gm-wins' : '')));
     }
     
-    // Animate
     animateFighters(winner, isDraw);
     
-    // Reset after delay if not over
     if (!combat.over) {
         setTimeout(() => {
             combat.twikMove = null;
@@ -913,7 +989,6 @@ function resolveCombat() {
                 twikMove: null, gmMove: null, processed: false, round: combat.round, lastResult: null
             });
             
-            // Reset log styling and text
             if (twikLog) {
                 twikLog.className = 'combat-log';
                 twikLog.textContent = 'Select your move!';
@@ -932,7 +1007,6 @@ function animateFighters(winner, isDraw) {
     const t2 = document.getElementById('gmTwikFighter');
     const g2 = document.getElementById('gmGmFighter');
     
-    // Clear animations
     [t1, g1, t2, g2].forEach(el => {
         if (el) {
             el.classList.remove('fighter-attack-left', 'fighter-attack-right', 'fighter-hurt', 'fighter-victory', 'fighter-draw', 'fighter-block');
@@ -941,16 +1015,13 @@ function animateFighters(winner, isDraw) {
     });
     
     if (isDraw) {
-        // Both block/cancel animation
         [t1, g1, t2, g2].forEach(el => el?.classList.add('fighter-block'));
     } else if (winner === 'twik') {
-        // Twik attacks left, GM hurts
         if (t1) { t1.classList.add('fighter-attack-left'); setTimeout(() => t1.classList.add('fighter-victory'), 400); }
         if (g2) g2.classList.add('fighter-hurt');
         if (t2) { t2.classList.add('fighter-attack-left'); setTimeout(() => t2.classList.add('fighter-victory'), 400); }
         if (g1) g1.classList.add('fighter-hurt');
     } else if (winner === 'gm') {
-        // GM attacks right, Twik hurts
         if (g1) { g1.classList.add('fighter-attack-right'); setTimeout(() => g1.classList.add('fighter-victory'), 400); }
         if (t2) t2.classList.add('fighter-hurt');
         if (g2) { g2.classList.add('fighter-attack-right'); setTimeout(() => g2.classList.add('fighter-victory'), 400); }
@@ -963,7 +1034,6 @@ function resetCombat() {
     const room = twikRoom || gmRoom;
     if (room) room.child('combat').set(combat);
     
-    // Reset UI
     const twikLog = document.getElementById('combatLog');
     const gmLog = document.getElementById('gmCombatLog');
     if (twikLog) {
@@ -975,7 +1045,7 @@ function resetCombat() {
         gmLog.className = 'combat-log';
     }
     
-    document.querySelectorAll('.pixel-twik, .pixel-gm').forEach(el => {
+    document.querySelectorAll('.stick-twik, .stick-gm').forEach(el => {
         el.classList.remove('fighter-attack-left', 'fighter-attack-right', 'fighter-hurt', 'fighter-victory', 'fighter-draw', 'fighter-block');
     });
     
@@ -992,7 +1062,6 @@ function copyGmCode() {
     navigator.clipboard.writeText(code);
 }
 
-// Enter key handlers
 document.getElementById('twikChatInput')?.addEventListener('keypress', e => { if (e.key === 'Enter') sendChat(); });
 document.getElementById('gmChatInput')?.addEventListener('keypress', e => { if (e.key === 'Enter') gmSendChat(); });
 document.getElementById('twikJoinInput')?.addEventListener('keypress', e => { if (e.key === 'Enter') twikJoin(); });
